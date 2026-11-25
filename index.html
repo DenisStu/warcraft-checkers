@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Warcraft Checkers - Альянс vs Орда</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  body {
+    font-family: 'Cinzel', serif;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f4e5c2;
+    position: relative;
+  }
+  
+  /* ===== ГЛАВНОЕ МЕНЮ ===== */
+  #mainMenu {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  
+  #mainMenu.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  
+  .menu-bg {
+    position: absolute;
+    inset: 0;
+    background: url('menu-bg.jpg') center/cover no-repeat;
+    filter: brightness(0.4) contrast(1.2);
+    z-index: 0;
+  }
+  
+  .menu-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%),
+      linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.5) 100%);
+  }
+  
+  /* Если изображение не загрузилось — fallback */
+  .menu-bg-fallback {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at top, #1a0f0a 0%, #0a0503 50%, #000 100%);
+    z-index: 0;
+  }
+  
+  .menu-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    animation: menuAppear 1s ease-out;
+  }
+  
+  @keyframes menuAppear {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .menu-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 64px;
+    background: linear-gradient(180deg, #ffd700 0%, #ff8c00 50%, #8b4513 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(255,200,0,0.5);
+    letter-spacing: 4px;
+    text-align: center;
+    animation: titleGlow 3s ease-in-out infinite;
+  }
+  
+  @keyframes titleGlow {
+    0%, 100% { filter: drop-shadow(0 0 20px rgba(255,200,0,0.6)); }
+    50% { filter: drop-shadow(0 0 40px rgba(255,200,0,1)); }
+  }
+  
+  .menu-subtitle {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 24px;
+    color: #c9a961;
+    letter-spacing: 3px;
+    margin-top: -20px;
+    text-shadow: 0 0 10px rgba(200,150,50,0.5);
+  }
+  
+  .faction-select {
+    display: flex;
+    gap: 40px;
+    margin-top: 20px;
+  }
+  
+  .faction-btn {
+    position: relative;
+    width: 220px;
+    height: 300px;
+    background: linear-gradient(180deg, #1a0f08 0%, #0a0503 100%);
+    border: 3px solid #3d2817;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+  }
+  
+  .faction-btn:hover {
+    transform: scale(1.08) translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  }
+  
+  .faction-btn.alliance-btn:hover,
+  .faction-btn.alliance-btn.selected {
+    border-color: #4a90e2;
+    box-shadow: 0 0 30px rgba(74,144,226,0.7), 0 10px 40px rgba(0,0,0,0.8);
+  }
+  
+  .faction-btn.horde-btn:hover,
+  .faction-btn.horde-btn.selected {
+    border-color: #c41e3a;
+    box-shadow: 0 0 30px rgba(196,30,58,0.7), 0 10px 40px rgba(0,0,0,0.8);
+  }
+  
+  .faction-btn.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: #ffd700;
+    color: #000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    box-shadow: 0 0 15px rgba(255,215,0,0.8);
+    animation: checkAppear 0.3s ease-out;
+  }
+  
+  @keyframes checkAppear {
+    from { transform: scale(0) rotate(-180deg); }
+    to { transform: scale(1) rotate(0); }
+  }
+  
+  .faction-portrait {
+    width: 100%;
+    height: 180px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  
+  .faction-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.8);
+    transition: filter 0.3s;
+  }
+  
+  .faction-btn:hover .faction-portrait img,
+  .faction-btn.selected .faction-portrait img {
+    filter: brightness(1);
+  }
+  
+  .faction-name {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+  }
+  
+  .alliance-btn .faction-name { color: #6bb6ff; text-shadow: 0 0 10px rgba(74,144,226,0.6); }
+  .horde-btn .faction-name { color: #ff6b6b; text-shadow: 0 0 10px rgba(196,30,58,0.6); }
+  
+  .faction-desc {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 12px;
+    color: #c9a961;
+    text-align: center;
+    line-height: 1.4;
+  }
+  
+  .start-btn {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    padding: 16px 60px;
+    font-size: 22px;
+    background: linear-gradient(180deg, #8b4513 0%, #5a2d0c 50%, #3d1f08 100%);
+    color: #ffd700;
+    border: 3px solid #ffd700;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.3);
+    transition: all 0.3s;
+    margin-top: 10px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  .start-btn.active {
+    opacity: 1;
+    pointer-events: all;
+    animation: startPulse 2s ease-in-out infinite;
+  }
+  
+  .start-btn.active:hover {
+    background: linear-gradient(180deg, #a0521c 0%, #6a3510 50%, #4a2510 100%);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.8), 0 0 50px rgba(255,215,0,0.6);
+    transform: scale(1.05);
+  }
+  
+  @keyframes startPulse {
+    0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.3); }
+    50% { box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 50px rgba(255,215,0,0.6); }
+  }
+  
+  /* ===== ИГРОВОЙ ИНТЕРФЕЙС ===== */
+  #gameInterface {
+    display: none;
+    width: 100%;
+    height: 100%;
+  }
+  
+  #gameInterface.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .game-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+    max-height: 100vh;
+    padding: 10px;
+  }
+  
+  .hero-card {
+    position: relative;
+    width: 180px;
+    background: linear-gradient(180deg, #1a0f08 0%, #0a0503 100%);
+    border: 3px solid #3d2817;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.6);
+    transition: all 0.4s ease;
+    flex-shrink: 0;
+  }
+  
+  .hero-card.active {
+    transform: scale(1.05);
+  }
+  
+  .hero-card.alliance.active {
+    border-color: #4a90e2;
+    box-shadow: 0 0 30px rgba(74,144,226,0.7), 0 0 60px rgba(74,144,226,0.3);
+  }
+  
+  .hero-card.horde.active {
+    border-color: #c41e3a;
+    box-shadow: 0 0 30px rgba(196,30,58,0.7), 0 0 60px rgba(196,30,58,0.3);
+  }
+  
+  .hero-portrait {
+    width: 100%;
+    aspect-ratio: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    border-radius: 4px;
+  }
+  
+  .hero-portrait::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid transparent;
+    border-radius: 4px;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--frame-color, #ffd700), transparent) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: frameRun 3s linear infinite;
+    background-size: 200% 100%;
+  }
+  
+  .alliance .hero-portrait::before { --frame-color: #4a90e2; }
+  .horde .hero-portrait::before { --frame-color: #c41e3a; }
+  
+  @keyframes frameRun {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  .hero-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.75) contrast(1.1);
+    transition: filter 0.5s;
+    animation: portraitBreath 4s ease-in-out infinite;
+  }
+  
+  .hero-card.active .hero-portrait img {
+    filter: brightness(1) contrast(1.2);
+    animation: portraitBreathActive 2s ease-in-out infinite;
+  }
+  
+  @keyframes portraitBreath {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+  
+  @keyframes portraitBreathActive {
+    0%, 100% { transform: scale(1.02); filter: brightness(1) contrast(1.2); }
+    50% { transform: scale(1.06); filter: brightness(1.15) contrast(1.3); }
+  }
+  
+  .hero-info {
+    padding: 8px 4px 4px;
+    text-align: center;
+  }
+  
+  .hero-name {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+  
+  .alliance .hero-name { color: #6bb6ff; text-shadow: 0 0 8px rgba(74,144,226,0.6); }
+  .horde .hero-name { color: #ff6b6b; text-shadow: 0 0 8px rgba(196,30,58,0.6); }
+  
+  .hero-level {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 10px;
+    color: #c9a961;
+    margin-bottom: 6px;
+  }
+  
+  .stat-bars { display: flex; flex-direction: column; gap: 3px; }
+  
+  .stat-bar {
+    height: 7px;
+    background: #1a0f08;
+    border: 1px solid #3d2817;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .stat-bar-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+    position: relative;
+  }
+  
+  .stat-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+  }
+  
+  .hp-fill {
+    background: linear-gradient(90deg, #8b0000, #ff4500, #ff6347);
+    box-shadow: 0 0 6px rgba(255,69,0,0.5);
+  }
+  
+  .mp-fill {
+    background: linear-gradient(90deg, #1e3a8a, #4a90e2, #6bb6ff);
+    box-shadow: 0 0 6px rgba(74,144,226,0.5);
+  }
+  
+  .stat-label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+    z-index: 1;
+    letter-spacing: 1px;
+  }
+  
+  .unit-count {
+    position: absolute;
+    bottom: -6px; right: -6px;
+    background: linear-gradient(135deg, #8b4513, #5a2d0c);
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 14px;
+    color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    z-index: 10;
+    animation: countPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes countPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  
+  .alliance .unit-count { border-color: #4a90e2; color: #6bb6ff; }
+  .horde .unit-count { border-color: #c41e3a; color: #ff6b6b; }
+  
+  .center-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 32px;
+    background: linear-gradient(180deg, #ffd700 0%, #ff8c00 50%, #8b4513 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 3px;
+    margin: 0;
+  }
+  
+  h1::before, h1::after {
+    content: '⚔';
+    -webkit-text-fill-color: #ffd700;
+    margin: 0 10px;
+    filter: drop-shadow(0 0 8px rgba(255,200,0,0.8));
+  }
+  
+  .subtitle {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 14px;
+    color: #c9a961;
+    letter-spacing: 2px;
+    margin-top: -4px;
+  }
+  
+  #status {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 18px;
+    min-height: 26px;
+    font-weight: 600;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 2px 4px rgba(0,0,0,0.8);
+    padding: 6px 20px;
+    background: linear-gradient(90deg, transparent, rgba(139,69,19,0.4), transparent);
+    border-top: 1px solid rgba(255,215,0,0.3);
+    border-bottom: 1px solid rgba(255,215,0,0.3);
+    text-align: center;
+  }
+  
+  #board-wrapper {
+    position: relative;
+    padding: 15px;
+    background: linear-gradient(135deg, #3d2817 0%, #1a0f08 100%);
+    border: 4px solid;
+    border-image: linear-gradient(135deg, #ffd700, #8b4513, #ffd700, #8b4513, #ffd700) 1;
+    box-shadow: 0 0 40px rgba(255,150,0,0.3), 0 20px 60px rgba(0,0,0,0.8);
+    border-radius: 8px;
+  }
+  
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 65px);
+    grid-template-rows: repeat(8, 65px);
+    border: 3px solid #2a1810;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+  }
+  
+  .cell {
+    width: 65px; height: 65px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  
+  .light {
+    background: repeating-linear-gradient(45deg, #8b6f47 0px, #8b6f47 2px, transparent 2px, transparent 8px),
+                linear-gradient(135deg, #a0825a 0%, #8b6f47 100%);
+  }
+  
+  .dark {
+    background: repeating-linear-gradient(45deg, #3d2817 0px, #3d2817 2px, transparent 2px, transparent 8px),
+                linear-gradient(135deg, #4a3020 0%, #2a1810 100%);
+  }
+  
+  .dark.selectable { cursor: pointer; }
+  .dark.selectable:hover {
+    background: repeating-linear-gradient(45deg, #5a3a25 0px, #5a3a25 2px, transparent 2px, transparent 8px),
+                linear-gradient(135deg, #6a4a30 0%, #3a2010 100%);
+  }
+  
+  .piece {
+    width: 52px; height: 52px;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));
+  }
+  
+  .piece.selected {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 15px rgba(255,215,0,0.9));
+    animation: selectedPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes selectedPulse {
+    0%, 100% { filter: drop-shadow(0 0 15px rgba(255,215,0,0.9)); }
+    50% { filter: drop-shadow(0 0 25px rgba(255,215,0,1)) drop-shadow(0 0 35px rgba(255,200,0,0.6)); }
+  }
+  
+  .hint::before {
+    content: '';
+    position: absolute;
+    width: 22px; height: 22px;
+    background: radial-gradient(circle, rgba(100,255,150,0.9), transparent 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(100,255,150,0.8);
+    animation: hintPulse 1.2s ease-in-out infinite;
+  }
+  
+  @keyframes hintPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+  
+  .capture-hint::before {
+    background: radial-gradient(circle, rgba(255,80,80,0.95), transparent 70%);
+    width: 30px; height: 30px;
+    box-shadow: 0 0 20px rgba(255,80,80,0.9);
+    animation: capturePulse 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes capturePulse {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.4) rotate(180deg); }
+  }
+  
+  button {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    padding: 8px 24px;
+    font-size: 14px;
+    background: linear-gradient(180deg, #8b4513 0%, #5a2d0c 50%, #3d1f08 100%);
+    color: #ffd700;
+    border: 2px solid #ffd700;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 20px rgba(255,215,0,0.2);
+    transition: all 0.2s;
+  }
+  
+  button:hover {
+    background: linear-gradient(180deg, #a0521c 0%, #6a3510 50%, #4a2510 100%);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.8), 0 0 30px rgba(255,215,0,0.4);
+    transform: translateY(-2px);
+  }
+  
+  .particle { position: absolute; pointer-events: none; z-index: 100; }
+  
+  @keyframes boardShake {
+    0%, 100% { transform: translate(0, 0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-3px, -2px); }
+    20%, 40%, 60%, 80% { transform: translate(3px, 2px); }
+  }
+  
+  .shake { animation: boardShake 0.5s ease-in-out; }
+  
+  @keyframes kingTransform {
+    0% { transform: scale(1) rotate(0); filter: brightness(1); }
+    50% { transform: scale(1.5) rotate(360deg); filter: brightness(3) drop-shadow(0 0 30px gold); }
+    100% { transform: scale(1) rotate(720deg); filter: brightness(1); }
+  }
+  
+  .transforming { animation: kingTransform 1s ease-in-out; }
+  
+  .game-over-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, rgba(0,0,0,0.85), rgba(0,0,0,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  
+  .game-over-content {
+    text-align: center;
+    padding: 40px 80px;
+    background: linear-gradient(135deg, rgba(60,30,15,0.95), rgba(30,15,5,0.95));
+    border: 3px solid #ffd700;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(255,215,0,0.5), inset 0 0 40px rgba(0,0,0,0.8);
+    animation: victoryAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  @keyframes victoryAppear {
+    from { transform: scale(0) rotate(-180deg); opacity: 0; }
+    to { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  
+  .victory-title {
+    font-size: 56px;
+    font-weight: 900;
+    background: linear-gradient(180deg, #ffd700, #ff8c00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+    letter-spacing: 4px;
+  }
+  
+  .victory-subtitle {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 24px;
+    color: #f4e5c2;
+    margin-bottom: 30px;
+  }
+</style>
+</head>
+<body>
+  <!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
+  <div id="mainMenu">
+    <div class="menu-bg" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"></div>
+    <div class="menu-bg-fallback" style="display:none;"></div>
+    
+    <div class="menu-content">
+      <h1 class="menu-title">WARCRAFT CHECKERS</h1>
+      <div class="menu-subtitle">Выбери свою сторону</div>
+      
+      <div class="faction-select">
+        <div class="faction-btn alliance-btn" onclick="selectFaction('alliance')">
+          <div class="faction-portrait">
+            <img src="alliance.png" alt="Альянс" onerror="this.style.display='none'; this.parentElement.style.background='linear-gradient(135deg, #1e3a5f, #4a90e2)';">
+          </div>
+          <div class="faction-name">АЛЬЯНС</div>
+          <div class="faction-desc">Магия и честь<br>Архимаг ведёт к победе</div>
+        </div>
+        
+        <div class="faction-btn horde-btn" onclick="selectFaction('horde')">
+          <div class="faction-portrait">
+            <img src="horde.png" alt="Орда" onerror="this.style.display='none'; this.parentElement.style.background='linear-gradient(135deg, #5a0f1a, #c41e3a)';">
+          </div>
+          <div class="faction-name">ОРДА</div>
+          <div class="faction-desc">Сила и ярость<br>Вождь сокрушит врагов</div>
+        </div>
+      </div>
+      
+      <button class="start-btn" id="startBtn" onclick="startGame()">НАЧАТЬ БИТВУ</button>
+    </div>
+  </div>
+  
+  <!-- ===== ИГРОВОЙ ИНТЕРФЕЙС ===== -->
+  <div id="gameInterface">
+    <div class="game-layout">
+      <div class="hero-card alliance active" id="allianceCard">
+        <div class="hero-portrait" id="alliancePortrait">
+          <img src="alliance.png" alt="Archmage" onerror="this.style.display='none'; this.parentElement.style.background='linear-gradient(135deg, #1e3a5f, #4a90e2)';">
+        </div>
+        <div class="unit-count" id="allianceCount">12</div>
+        <div class="hero-info">
+          <div class="hero-name">ARCHMAGE</div>
+          <div class="hero-level">Уровень 10</div>
+          <div class="stat-bars">
+            <div class="stat-bar">
+              <div class="stat-bar-fill hp-fill" id="allianceHp" style="width: 100%"></div>
+              <div class="stat-label">HP</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill mp-fill" id="allianceMp" style="width: 100%"></div>
+              <div class="stat-label">MP</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="center-column">
+        <h1>WARCRAFT CHECKERS</h1>
+        <div class="subtitle">Альянс против Орды</div>
+        <div id="status">⚔ Битва начинается! ⚔</div>
+        <div id="board-wrapper">
+          <div id="board"></div>
+        </div>
+        <button onclick="returnToMenu()">В меню</button>
+      </div>
+      
+      <div class="hero-card horde" id="hordeCard">
+        <div class="hero-portrait" id="hordePortrait">
+          <img src="horde.png" alt="War Chief" onerror="this.style.display='none'; this.parentElement.style.background='linear-gradient(135deg, #5a0f1a, #c41e3a)';">
+        </div>
+        <div class="unit-count" id="hordeCount">12</div>
+        <div class="hero-info">
+          <div class="hero-name">WAR CHIEF</div>
+          <div class="hero-level">Уровень 10</div>
+          <div class="stat-bars">
+            <div class="stat-bar">
+              <div class="stat-bar-fill hp-fill" id="hordeHp" style="width: 100%"></div>
+              <div class="stat-label">HP</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill mp-fill" id="hordeMp" style="width: 100%"></div>
+              <div class="stat-label">MP</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== ВЫБОР ФРАКЦИИ ===== */
+let selectedFaction = null;
+let playerSide = 'W'; // 'W' = Альянс, 'B' = Орда
+
+function selectFaction(faction) {
+  selectedFaction = faction;
+  document.querySelectorAll('.faction-btn').forEach(btn => btn.classList.remove('selected'));
+  document.querySelector(`.${faction}-btn`).classList.add('selected');
+  document.getElementById('startBtn').classList.add('active');
+  
+  // Звук выбора
+  initAudio();
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = faction === 'alliance' ? 523.25 : 392.00;
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.3);
+}
+
+function startGame() {
+  if (!selectedFaction) return;
+  
+  playerSide = selectedFaction === 'alliance' ? 'W' : 'B';
+  
+  // Скрыть меню, показать игру
+  document.getElementById('mainMenu').classList.add('hidden');
+  setTimeout(() => {
+    document.getElementById('gameInterface').classList.add('active');
+    newGame();
+  }, 400);
+}
+
+function returnToMenu() {
+  document.getElementById('gameInterface').classList.remove('active');
+  setTimeout(() => {
+    document.getElementById('mainMenu').classList.remove('hidden');
+    selectedFaction = null;
+    document.querySelectorAll('.faction-btn').forEach(btn => btn.classList.remove('selected'));
+    document.getElementById('startBtn').classList.remove('active');
+  }, 400);
+}
+
+/* ===== ЗВУКИ ===== */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function initAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playMoveSound() {
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.1);
+  filter.type = 'lowpass'; filter.frequency.value = 1000;
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function playCaptureSound() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
+  osc1.type = 'sine'; osc1.frequency.setValueAtTime(100, now);
+  osc1.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+  gain1.gain.setValueAtTime(0.5, now); gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+  osc1.connect(gain1); gain1.connect(audioCtx.destination); osc1.start(now); osc1.stop(now + 0.3);
+  
+  const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+  osc2.type = 'sine'; osc2.frequency.setValueAtTime(800, now);
+  osc2.frequency.exponentialRampToValueAtTime(200, now + 0.4);
+  gain2.gain.setValueAtTime(0.2, now); gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+  osc2.connect(gain2); gain2.connect(audioCtx.destination); osc2.start(now); osc2.stop(now + 0.4);
+  
+  const bufferSize = audioCtx.sampleRate * 0.3;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+  const noise = audioCtx.createBufferSource(); const noiseGain = audioCtx.createGain();
+  noise.buffer = buffer; noiseGain.gain.value = 0.15;
+  noise.connect(noiseGain); noiseGain.connect(audioCtx.destination); noise.start(now);
+}
+
+function playKingSound() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + i * 0.05);
+    gain.gain.linearRampToValueAtTime(0.2, now + i * 0.05 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now + i * 0.05); osc.stop(now + 1.5);
+  });
+}
+
+function playVictorySound() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + i * 0.15);
+    gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.5);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.5);
+  });
+}
+
+function playDefeatSound() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  [392.00, 349.23, 329.63, 261.63].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'sawtooth'; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + i * 0.2);
+    gain.gain.linearRampToValueAtTime(0.2, now + i * 0.2 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.6);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now + i * 0.2); osc.stop(now + i * 0.2 + 0.6);
+  });
+}
+
+/* ===== Эффекты частиц на доске ===== */
+function createMagicBurst(x, y, color = 'gold') {
+  const wrapper = document.getElementById('board-wrapper');
+  const rect = wrapper.getBoundingClientRect();
+  const relX = x - rect.left, relY = y - rect.top;
+  for (let i = 0; i < 20; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    const size = Math.random() * 8 + 4;
+    particle.style.cssText = `left:${relX}px;top:${relY}px;width:${size}px;height:${size}px;background:radial-gradient(circle,${color},transparent);border-radius:50%;box-shadow:0 0 ${size}px ${color};pointer-events:none;`;
+    wrapper.appendChild(particle);
+    const angle = (Math.PI * 2 * i) / 20 + Math.random() * 0.5;
+    const distance = 60 + Math.random() * 40;
+    particle.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(angle)*distance}px,${Math.sin(angle)*distance}px) scale(0)`, opacity: 0 }
+    ], { duration: 800 + Math.random() * 400, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' }).onfinish = () => particle.remove();
+  }
+}
+
+function createCaptureEffect(x, y) {
+  const wrapper = document.getElementById('board-wrapper');
+  const rect = wrapper.getBoundingClientRect();
+  const relX = x - rect.left, relY = y - rect.top;
+  for (let i = 0; i < 30; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    const size = Math.random() * 10 + 5;
+    const colors = ['#ff4500','#ff6347','#ffa500','#ffd700'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.cssText = `left:${relX}px;top:${relY}px;width:${size}px;height:${size}px;background:radial-gradient(circle,${color},transparent);border-radius:50%;box-shadow:0 0 ${size*2}px ${color};pointer-events:none;`;
+    wrapper.appendChild(particle);
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 80 + Math.random() * 60;
+    particle.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(angle)*distance}px,${Math.sin(angle)*distance-30}px) scale(0)`, opacity: 0 }
+    ], { duration: 1000 + Math.random() * 500, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' }).onfinish = () => particle.remove();
+  }
+  const bw = document.getElementById('board-wrapper');
+  bw.classList.add('shake');
+  setTimeout(() => bw.classList.remove('shake'), 500);
+}
+
+/* ===== SVG юнитов ===== */
+function getPieceSVG(piece) {
+  const isWhite = piece === 1 || piece === 3;
+  const isKing = piece === 3 || piece === 4;
+  if (isWhite) {
+    if (isKing) return `<svg viewBox="0 0 100 100" style="width:100%;height:100%"><defs><radialGradient id="akG"><stop offset="0%" style="stop-color:#87ceeb"/><stop offset="70%" style="stop-color:#4a90e2"/><stop offset="100%" style="stop-color:#1e3a5f"/></radialGradient></defs><circle cx="50" cy="50" r="42" fill="url(#akG)" stroke="#ffd700" stroke-width="3"/><path d="M30 35L35 25L40 32L45 22L50 30L55 22L60 32L65 25L70 35L70 40L30 40Z" fill="#ffd700" stroke="#b8860b" stroke-width="1"/><rect x="48" y="45" width="4" height="30" fill="#c0c0c0"/><rect x="42" y="50" width="16" height="4" fill="#8b4513"/></svg>`;
+    return `<svg viewBox="0 0 100 100" style="width:100%;height:100%"><defs><radialGradient id="aG"><stop offset="0%" style="stop-color:#6bb6ff"/><stop offset="70%" style="stop-color:#4a90e2"/><stop offset="100%" style="stop-color:#2a5f9e"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#aG)" stroke="#ffd700" stroke-width="2.5"/><path d="M35 35L65 35L65 55Q65 70 50 75Q35 70 35 55Z" fill="#4a90e2" stroke="#ffd700" stroke-width="2"/><circle cx="50" cy="50" r="8" fill="#ffd700"/></svg>`;
+  } else {
+    if (isKing) return `<svg viewBox="0 0 100 100" style="width:100%;height:100%"><defs><radialGradient id="hkG"><stop offset="0%" style="stop-color:#ff6b6b"/><stop offset="70%" style="stop-color:#c41e3a"/><stop offset="100%" style="stop-color:#5a0f1a"/></radialGradient></defs><circle cx="50" cy="50" r="42" fill="url(#hkG)" stroke="#ffd700" stroke-width="3"/><path d="M30 35Q25 20 20 15L25 25Q28 30 30 35" fill="#8b4513"/><path d="M70 35Q75 20 80 15L75 25Q72 30 70 35" fill="#8b4513"/><ellipse cx="50" cy="50" rx="15" ry="18" fill="#f4e5c2" stroke="#8b4513" stroke-width="2"/><circle cx="45" cy="47" r="3" fill="#000"/><circle cx="55" cy="47" r="3" fill="#000"/></svg>`;
+    return `<svg viewBox="0 0 100 100" style="width:100%;height:100%"><defs><radialGradient id="hG"><stop offset="0%" style="stop-color:#ff6b6b"/><stop offset="70%" style="stop-color:#c41e3a"/><stop offset="100%" style="stop-color:#8b0000"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#hG)" stroke="#ffd700" stroke-width="2.5"/><ellipse cx="50" cy="50" rx="20" ry="22" fill="#4a7c3a" stroke="#2d4d23" stroke-width="2"/><ellipse cx="43" cy="45" rx="4" ry="5" fill="#ff0000"/><ellipse cx="57" cy="45" rx="4" ry="5" fill="#ff0000"/><circle cx="43" cy="45" r="2" fill="#000"/><circle cx="57" cy="45" r="2" fill="#000"/></svg>`;
+  }
+}
+
+/* ===== Игровая логика ===== */
+const EMPTY = 0, W = 1, B = 2, WK = 3, BK = 4, SIZE = 8;
+let board, selected, legalMoves, mustCaptureChain, turn, gameOver;
+
+function newGame() {
+  board = Array.from({length: SIZE}, () => Array(SIZE).fill(EMPTY));
+  for (let r = 0; r < 3; r++) for (let c = 0; c < SIZE; c++) if ((r+c)%2===1) board[r][c] = B;
+  for (let r = 5; r < 8; r++) for (let c = 0; c < SIZE; c++) if ((r+c)%2===1) board[r][c] = W;
+  selected = null; legalMoves = []; mustCaptureChain = null; turn = 'W'; gameOver = false;
+  updateHeroCards();
+  render();
+  setStatus(playerSide === 'W' ? '⚔ Твой ход, Архимаг! ⚔' : '🔮 Орда атакует... 🔮');
+  
+  // Если игрок выбрал Орду, ИИ ходит первым (Альянс)
+  if (playerSide === 'B') {
+    setTimeout(doAiTurn, 800);
+  }
+}
+
+function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
+function isWhite(p){return p===W||p===WK;}
+function isBlack(p){return p===B||p===BK;}
+function isKing(p){return p===WK||p===BK;}
+function owner(p,side){return side==='W'?isWhite(p):isBlack(p);}
+function enemy(p,side){return side==='W'?isBlack(p):isWhite(p);}
+function cloneBoard(b){return b.map(row=>row.slice());}
+
+function getCapturesForPiece(b,r,c,side){
+  const piece=b[r][c]; if(!owner(piece,side))return[];
+  const results=[]; const isK=isKing(piece);
+  if(isK){
+    for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){
+      let nr=r+dr,nc=c+dc;
+      while(inBounds(nr,nc)&&b[nr][nc]===EMPTY){nr+=dr;nc+=dc;}
+      if(!inBounds(nr,nc))continue; if(!enemy(b[nr][nc],side))continue;
+      const er=nr,ec=nc; nr+=dr;nc+=dc;
+      while(inBounds(nr,nc)&&b[nr][nc]===EMPTY){
+        const nb=cloneBoard(b); nb[r][c]=EMPTY; nb[er][ec]=EMPTY; nb[nr][nc]=piece;
+        const cont=getCapturesForPiece(nb,nr,nc,side);
+        if(cont.length===0)results.push({from:[r,c],to:[nr,nc],path:[[r,c],[nr,nc]],captured:[[er,ec]]});
+        else for(const m of cont)results.push({from:[r,c],to:m.to,path:[[r,c],[nr,nc],...m.path.slice(1)],captured:[[er,ec],...m.captured]});
+        nr+=dr;nc+=dc;
+      }
+    }
+  }else{
+    for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){
+      const er=r+dr,ec=c+dc,lr=r+2*dr,lc=c+2*dc;
+      if(!inBounds(lr,lc))continue; if(!enemy(b[er][ec],side))continue; if(b[lr][lc]!==EMPTY)continue;
+      const nb=cloneBoard(b); nb[r][c]=EMPTY; nb[er][ec]=EMPTY;
+      let newPiece=piece; if(side==='W'&&lr===0)newPiece=WK; if(side==='B'&&lr===SIZE-1)newPiece=BK;
+      nb[lr][lc]=newPiece;
+      const cont=getCapturesForPiece(nb,lr,lc,side);
+      if(cont.length===0)results.push({from:[r,c],to:[lr,lc],path:[[r,c],[lr,lc]],captured:[[er,ec]]});
+      else for(const m of cont)results.push({from:[r,c],to:m.to,path:[[r,c],[lr,lc],...m.path.slice(1)],captured:[[er,ec],...m.captured]});
+    }
+  }
+  return results;
+}
+
+function getAllMoves(b,side){
+  const captures=[],simples=[];
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(!owner(b[r][c],side))continue;
+    const caps=getCapturesForPiece(b,r,c,side);
+    if(caps.length>0)captures.push(...caps); else simples.push(...getSimpleMoves(b,r,c,side));
+  }
+  if(captures.length>0){const maxCap=Math.max(...captures.map(m=>m.captured.length));return captures.filter(m=>m.captured.length===maxCap);}
+  return simples;
+}
+
+function getSimpleMoves(b,r,c,side){
+  const piece=b[r][c]; const moves=[];
+  if(isKing(piece)){
+    for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){
+      let nr=r+dr,nc=c+dc;
+      while(inBounds(nr,nc)&&b[nr][nc]===EMPTY){moves.push({from:[r,c],to:[nr,nc],path:[[r,c],[nr,nc]],captured:[]});nr+=dr;nc+=dc;}
+    }
+  }else{
+    const dir=side==='W'?-1:1;
+    for(const dc of[-1,1]){const nr=r+dir,nc=c+dc;if(inBounds(nr,nc)&&b[nr][nc]===EMPTY)moves.push({from:[r,c],to:[nr,nc],path:[[r,c],[nr,nc]],captured:[]});}
+  }
+  return moves;
+}
+
+function getMovesForPiece(b,r,c,side){return getAllMoves(b,side).filter(m=>m.from[0]===r&&m.from[1]===c);}
+
+function applyMove(b,move){
+  const nb=cloneBoard(b); const[fr,fc]=move.from; const[tr,tc]=move.to; const piece=nb[fr][fc];
+  nb[fr][fc]=EMPTY; for(const[cr,cc]of move.captured)nb[cr][cc]=EMPTY;
+  let newPiece=piece; if(piece===W&&tr===0)newPiece=WK; if(piece===B&&tr===SIZE-1)newPiece=BK;
+  nb[tr][tc]=newPiece; return nb;
+}
+
+function evaluate(b){
+  let score=0;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const p=b[r][c];
+    if(p===W)score-=100; if(p===WK)score-=300; if(p===B)score+=100; if(p===BK)score+=300;
+    if(p===W)score-=(SIZE-1-r)*2; if(p===B)score+=r*2;
+    if((p===W||p===WK)&&c>=2&&c<=5&&r>=2&&r<=5)score-=3;
+    if((p===B||p===BK)&&c>=2&&c<=5&&r>=2&&r<=5)score+=3;
+  }
+  return score;
+}
+
+function minimax(b,depth,alpha,beta,maximizing){
+  const side=maximizing?'B':'W'; const moves=getAllMoves(b,side);
+  if(depth===0||moves.length===0)return moves.length===0?(maximizing?-100000:100000):evaluate(b);
+  if(maximizing){
+    let best=-Infinity;
+    for(const m of moves){const val=minimax(applyMove(b,m),depth-1,alpha,beta,false);if(val>best)best=val;if(best>alpha)alpha=best;if(alpha>=beta)break;}
+    return best;
+  }else{
+    let best=Infinity;
+    for(const m of moves){const val=minimax(applyMove(b,m),depth-1,alpha,beta,true);if(val<best)best=val;if(best<beta)beta=best;if(alpha>=beta)break;}
+    return best;
+  }
+}
+
+function aiMove(){
+  const moves=getAllMoves(board,'B'); if(moves.length===0)return null;
+  let bestVal=-Infinity; let bestMoves=[];
+  for(const m of moves){const val=minimax(applyMove(board,m),5,-Infinity,Infinity,false);if(val>bestVal){bestVal=val;bestMoves=[m];}else if(val===bestVal)bestMoves.push(m);}
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+
+/* ===== Обновление карточек героев ===== */
+function updateHeroCards() {
+  let w=0, b=0;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){if(isWhite(board[r][c]))w++;if(isBlack(board[r][c]))b++;}
+  
+  document.getElementById('allianceCount').textContent = w;
+  document.getElementById('hordeCount').textContent = b;
+  
+  const maxUnits = 12;
+  document.getElementById('allianceHp').style.width = (w/maxUnits*100) + '%';
+  document.getElementById('hordeHp').style.width = (b/maxUnits*100) + '%';
+  
+  let wK=0, bK=0;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){if(board[r][c]===WK)wK++;if(board[r][c]===BK)bK++;}
+  document.getElementById('allianceMp').style.width = Math.min(100, wK*25 + 20) + '%';
+  document.getElementById('hordeMp').style.width = Math.min(100, bK*25 + 20) + '%';
+  
+  document.getElementById('allianceCard').classList.toggle('active', turn==='W' && !gameOver);
+  document.getElementById('hordeCard').classList.toggle('active', turn==='B' && !gameOver);
+}
+
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const cell = document.createElement('div');
+    cell.className = 'cell ' + ((r+c)%2===0?'light':'dark');
+    cell.dataset.r = r; cell.dataset.c = c;
+    const p = board[r][c];
+    if(p!==EMPTY){
+      const piece = document.createElement('div');
+      piece.className = 'piece';
+      piece.innerHTML = getPieceSVG(p);
+      if(selected && selected[0]===r && selected[1]===c) piece.classList.add('selected');
+      cell.appendChild(piece);
+    }
+    if(selected){for(const m of legalMoves){if(m.to[0]===r&&m.to[1]===c)cell.classList.add(m.captured.length>0?'capture-hint':'hint');}}
+    // Подсветка только для стороны игрока
+    const playerIsWhite = playerSide === 'W';
+    if(!gameOver && turn === playerSide) {
+      if((playerIsWhite && isWhite(p)) || (!playerIsWhite && isBlack(p))) {
+        cell.classList.add('selectable');
+      }
+    }
+    cell.addEventListener('click', onCellClick);
+    boardEl.appendChild(cell);
+  }
+  updateHeroCards();
+}
+
+function setStatus(text){document.getElementById('status').textContent=text;}
+
+function onCellClick(e){
+  if(gameOver || turn !== playerSide) return;
+  const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c, p=board[r][c];
+  
+  const playerIsWhite = playerSide === 'W';
+  const isPlayerPiece = (playerIsWhite && isWhite(p)) || (!playerIsWhite && isBlack(p));
+  
+  if(mustCaptureChain){
+    if(isPlayerPiece && (p !== mustCaptureChain.piece)) return;
+  }
+  
+  if(isPlayerPiece){
+    if(mustCaptureChain && mustCaptureChain.piece !== p) return;
+    const moves=getMovesForPiece(board,r,c,playerSide);
+    if(moves.length===0) return;
+    selected=[r,c]; legalMoves=moves; playMoveSound(); render(); return;
+  }
+  
+  if(selected){
+    const move=legalMoves.find(m=>m.to[0]===r&&m.to[1]===c);
+    if(!move) return;
+    makePlayerMove(move,e);
+  }
+}
+
+function makePlayerMove(move,event){
+  const wasKing=isKing(board[move.from[0]][move.from[1]]);
+  board=applyMove(board,move);
+  const isNowKing=isKing(board[move.to[0]][move.to[1]]);
+  if(move.captured.length>0){
+    playCaptureSound();
+    const cell=document.querySelector(`[data-r="${move.to[0]}"][data-c="${move.to[1]}"]`);
+    if(cell){const rect=cell.getBoundingClientRect();createCaptureEffect(rect.left+rect.width/2,rect.top+rect.height/2);}
+  } else {
+    playMoveSound();
+  }
+  if(!wasKing&&isNowKing){
+    playKingSound();
+    setTimeout(()=>{
+      const cell=document.querySelector(`[data-r="${move.to[0]}"][data-c="${move.to[1]}"] .piece`);
+      if(cell){cell.classList.add('transforming');const rect=cell.getBoundingClientRect();createMagicBurst(rect.left+rect.width/2,rect.top+rect.height/2,'#ffd700');setTimeout(()=>cell.classList.remove('transforming'),1000);}
+    },100);
+  }
+  selected=null; legalMoves=[];
+  if(checkGameEnd())return;
+  turn = playerSide === 'W' ? 'B' : 'W';
+  setStatus(playerSide === 'W' ? '🔮 Орда готовит атаку... 🔮' : '⚔ Архимаг контратакует... ⚔');
+  render();
+  setTimeout(doAiTurn,500);
+}
+
+function doAiTurn(){
+  const aiSide = playerSide === 'W' ? 'B' : 'W';
+  const move = aiSide === 'B' ? aiMove() : aiMoveWhite();
+  if(!move){endGame(playerSide === 'W' ? 'victory' : 'defeat');return;}
+  const wasKing=isKing(board[move.from[0]][move.from[1]]);
+  board=applyMove(board,move);
+  const isNowKing=isKing(board[move.to[0]][move.to[1]]);
+  if(move.captured.length>0){
+    playCaptureSound();
+    const cell=document.querySelector(`[data-r="${move.to[0]}"][data-c="${move.to[1]}"]`);
+    if(cell){const rect=cell.getBoundingClientRect();createCaptureEffect(rect.left+rect.width/2,rect.top+rect.height/2);}
+  } else {
+    playMoveSound();
+  }
+  if(!wasKing&&isNowKing){
+    playKingSound();
+    setTimeout(()=>{
+      const cell=document.querySelector(`[data-r="${move.to[0]}"][data-c="${move.to[1]}"] .piece`);
+      if(cell){cell.classList.add('transforming');const rect=cell.getBoundingClientRect();createMagicBurst(rect.left+rect.width/2,rect.top+rect.height/2,'#ff4500');setTimeout(()=>cell.classList.remove('transforming'),1000);}
+    },100);
+  }
+  render();
+  if(checkGameEnd())return;
+  turn = playerSide;
+  setStatus(playerSide === 'W' ? '⚔ Твой ход, Архимаг! ⚔' : '⚔ Твой ход, Вождь! ⚔');
+}
+
+// ИИ для белых (если игрок выбрал Орду)
+function aiMoveWhite(){
+  const moves=getAllMoves(board,'W'); if(moves.length===0)return null;
+  let bestVal=Infinity; let bestMoves=[];
+  for(const m of moves){const val=minimax(applyMove(board,m),5,-Infinity,Infinity,true);if(val<bestVal){bestVal=val;bestMoves=[m];}else if(val===bestVal)bestMoves.push(m);}
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+
+function checkGameEnd(){
+  const wMoves=getAllMoves(board,'W'), bMoves=getAllMoves(board,'B');
+  let wCount=0,bCount=0;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){if(isWhite(board[r][c]))wCount++;if(isBlack(board[r][c]))bCount++;}
+  const playerWins = playerSide === 'W' ? (bCount===0||bMoves.length===0) : (wCount===0||wMoves.length===0);
+  const aiWins = playerSide === 'W' ? (wCount===0||wMoves.length===0) : (bCount===0||bMoves.length===0);
+  if(aiWins){endGame('defeat');return true;}
+  if(playerWins){endGame('victory');return true;}
+  return false;
+}
+
+function endGame(result){
+  gameOver=true; updateHeroCards();
+  const overlay=document.createElement('div'); overlay.className='game-over-overlay';
+  const content=document.createElement('div'); content.className='game-over-content';
+  if(result==='victory'){
+    playVictorySound();
+    content.innerHTML=`<div class="victory-title">ПОБЕДА!</div><div class="victory-subtitle">${playerSide==='W'?'Альянс':'Орда'} торжествует!</div><button onclick="this.parentElement.parentElement.remove();returnToMenu();">В меню</button>`;
+  }else{
+    playDefeatSound();
+    content.innerHTML=`<div class="victory-title" style="background:linear-gradient(180deg,#ff4500,#8b0000);-webkit-background-clip:text;">ПОРАЖЕНИЕ</div><div class="victory-subtitle">${playerSide==='W'?'Орда':'Альянс'} победила...</div><button onclick="this.parentElement.parentElement.remove();returnToMenu();">В меню</button>`;
+  }
+  overlay.appendChild(content); document.body.appendChild(overlay);
+  if(result==='victory')for(let i=0;i<5;i++)setTimeout(()=>{const x=Math.random()*window.innerWidth;const y=Math.random()*window.innerHeight*0.5;createMagicBurst(x,y,['#ffd700','#ff4500','#00ff00','#00bfff'][Math.floor(Math.random()*4)]);},i*300);
+}
+</script>
+</body>
+</html>
